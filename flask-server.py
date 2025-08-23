@@ -165,7 +165,7 @@ def get_last_modified_times(input_dir):
 def get_most_recently_modified(input_dir):
     modified_times = get_last_modified_times(input_dir)
     if len(modified_times) > 0:
-        return datetime.fromtimestamp(sorted(modified_times)[0])
+        return datetime.fromtimestamp(sorted(modified_times)[0]).astimezone().astimezone(timezone.utc)
     return None
 
 
