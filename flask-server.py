@@ -15,6 +15,7 @@ app = Flask(__name__)
 CORS(app)
 
 alldata = []
+last_modified = None
 
 MINIMUM_FILE_UPLOAD_SIZE_BYTES = 1024
 
@@ -45,7 +46,15 @@ def login_required(f):
 @app.route('/v0/public.json', methods = ['GET'])  
 def public_json():
 
-    return jsonify(alldata)
+    modified_date = last_modified
+
+    if modified_date is None:
+        modified_date = datetime(1970,1,1,0,0,0)
+
+    return jsonify({
+        "data": alldata,
+        "last_updated": modified_date.isoformat()
+        })
 
 @app.route('/v0/public.ics')
 def public_ics():    
@@ -149,10 +158,19 @@ def _read_from_disk(input_dir):
         if not datafile.is_file():
             continue
         yield datafile
-    
+
+def get_last_modified_times(input_dir):
+    return [d.stat().st_mtime for d in _read_from_disk(input_dir)]
+
+def get_most_recently_modified(input_dir):
+    modified_times = get_last_modified_times(input_dir)
+    if len(modified_times) > 0:
+        return datetime.fromtimestamp(sorted(modified_times)[0])
+    return None
+
 
 def update_data(input_dir):
-    global alldata
+    global alldata, last_modified
     app.logger.info("Processing event data started")
     for datafile in _read_from_disk(input_dir):
         tzun_count = 0
@@ -179,6 +197,7 @@ def update_data(input_dir):
     alldata_tmp = map(lambda e: e.dict(), alldata_tmp)
     alldata = list(alldata_tmp)
 
+    last_modified = get_most_recently_modified(input_dir)
     app.logger.info("Processing event data complete")
 
 
