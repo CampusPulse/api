@@ -143,12 +143,18 @@ def upload():
         return jsonify({'message': 'Success'}), 200
 
 
-def update_data(input_dir):
-    global alldata
-    app.logger.info("Processing event data started")
+
+def _read_from_disk(input_dir):
     for datafile in input_dir.glob("*.parsed.normalized.ndjson"):
         if not datafile.is_file():
             continue
+        yield datafile
+    
+
+def update_data(input_dir):
+    global alldata
+    app.logger.info("Processing event data started")
+    for datafile in _read_from_disk(input_dir):
         tzun_count = 0
         for line in datafile.read_text().split("\n"):
             if line.strip() != "":
